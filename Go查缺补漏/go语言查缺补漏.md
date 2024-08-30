@@ -183,3 +183,298 @@ func main() {
 }
 ```
 
+###反射
+- 基本用法：`reflect.Type`获取变量类型,`reflect.Value`获取变量值,`reflect.Kind`
+- 获取类型信息：`reflect.TypeOf`可以获取变量的类型，ps:变量和变量指针对应的类型是不同的
+- 动态调用方法：`reflect.Vlaue.MethodByName`可以在运行时根据方法名动态调用方法
+
+示例：
+
+```
+package main
+
+import (
+    "fmt"
+    "reflect"
+)
+
+type MyStruct struct{}
+
+func (m *MyStruct) Hello(name string) {
+    fmt.Println("Hello", name)
+}
+
+func main() {
+    var myStruct MyStruct
+    v := reflect.ValueOf(&myStruct)
+    method := v.MethodByName("Hello")
+    if method.IsValid() {
+        method.Call([]reflect.Value{reflect.ValueOf("World")})
+    }
+}
+
+```
+
+### net/http包中的client如何实现长链接
+
+ 要通过`net/hettp`包中的客户端（http.Client）实现长链接需要设置`Transport`的`DisableKeepAlives`字段为`false`,默认情况下就是如此。还可以通过设置`Transport`的`MaxIdleConns`和`MaxIdleConnsPerHost`来控制连接池的连接数。
+ 
+示例：
+
+```
+package main
+
+import (
+    "net/http"
+    "time"
+)
+
+func main() {
+    transport := &http.Transport{
+        MaxIdleConns:        100,
+        MaxIdleConnsPerHost: 10,
+        IdleConnTimeout:     90 * time.Second, //闲置连接数决定在没有请求进行时，客户端可以保留多长链接，链接在`IdleConnTimeout`时间内保持可用，超时关闭
+    }
+
+    client := &http.Client{
+        Transport: transport,
+    }
+
+    // 发送请求并利用长连接
+    resp, err := client.Get("http://example.com")
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    // 处理响应...
+}
+
+```
+
+另外：
+
+ - Http/2:`http.Client`还支持HTTP/2协议，天生支持长链接性能更好，无需特殊设置，确保`http.Transport`默认配置即可，若想手动开启，可使用`golang.org/x/net/http2`包进一步配置
+
+ - 连接池：go的Http客户端内部实现了一个连接池，复用链接
+
+ 示例：
+ 
+```
+import (
+    "net/http"
+    "golang.org/x/net/http2"
+)
+
+func main() {
+    transport := &http.Transport{}
+    http2.ConfigureTransport(transport)
+
+    client := &http.Client{
+        Transport: transport,
+    }
+
+    // 发送请求
+    resp, err := client.Get("https://http2.golang.org")
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    // 处理响应...
+}
+
+```
+
+- TimeOut设置：使用`http.Client`的`Timeout`字段可以避免请求挂起，还可以设置`Transport`的其他超时字段，如：`ResponseHeaderTimeout`和`ExpectContinueTimeout`,更全面的控制每个请求的生命周期
+
+
+
+###runtime.Gosched()
+当调用`runtime.Gosched()`时，当前的goroutine会将控制权还给Go的调度器，调度器会选择另一个goroutine执行，当前的goroutine回到队列，仅在下一次被调度到时才继续执行，适用于密集计算以及等待其他goroutine的结果
+
+###特定情况下的协程与线程绑定
+
+在与某些线程局部存储（Thread-Local Storage，TLS）的库交互时，可以使用`runtime.LockOSThread`和`runtime.UnlockOSThread`来绑定协程到特定线程
+
+###查看协程数量
+
+runtime.NumGoroutine
+
+###channel底层结构
+
+
+```
+type hchan struct {
+	qcount   uint           // 队列中所有数据总数
+	dataqsiz uint           // 环形队列的 size
+	buf      unsafe.Pointer // 指向 dataqsiz 长度的数组
+	elemsize uint16         // 单个元素大小
+	closed   uint32         // 队列是否已经被关闭
+	elemtype *_type // 保存的元素类型
+	sendx    uint   // 已发送的元素在环形队列中的位置
+	recvx    uint   // 已接收的元素在环形队列中的位置
+	recvq    waitq  // 接收者的等待队列
+	sendq    waitq  // 发送者的等待队列
+
+	lock mutex  // 数据保护锁
+}
+
+```
+常见陷阱：
+1. 关闭已关闭的channel：导致panic
+
+```
+func safeClose(ch chan int) {
+    defer func() {
+        if recover() != nil {
+            fmt.Println("Channel already closed")
+        }
+    }()
+    close(ch)
+}
+
+```
+
+2.从已关闭的channel接收数据：不会阻塞，返回元素类型的零值
+
+3.向已关闭的channel写数据：panic
+
+
+###channel可能会引起的资源泄漏
+
+1.未关闭的chhannel
+
+2.无限制的缓冲channel
+
+3.事件循环中的死锁
+
+###抢占式调度
+
+抢占式调度是一种操作系统级别的调度机制，用于确保系统内的各进程或线程能公平的使用CPU资源，避免某个进程长时间独占CPU资源。Go的抢占式调度通过在协程的运行过程中定期引入中断点（如，函数调用，循环边界等）从而让调度器有机会在合适的时机进行调度判断，决定是否需要将当前正在执行的协程切换出去。
+
+
+### GMP调度模型
+GMP模型将高并发任务分解为Goroutines(G),Machines(M)和Processors(P)。这种模型旨在提高并发执行效率和性能。
+
+- P的具体职责：
+    - 上下文管理：p持有goroutine队列和本地运行时信息
+    - 负载均衡：p可以在不同的M之间移动goroutine，从而避免某个M过载或空闲
+    - 资源管理：当系统中有空闲的p时，可以将其借给繁忙的M，最大化系统资源的利用
+
+### Go Schedule
+调度器，负责管理和调度goroutine的执行，使用了是一中M:N模型的调度机制，即N个goroutine映射到M个系统线程中
+
+工作原理：
+
+  - 1.新的goroutine被创键后会被分配到某个p的运行队列中
+  - 2.p会从其运行队列中取出goroutine，并交给空闲的M执行
+  - 3.如果一个P中的goroutine数量过多，会将部分goroutine移动到其他空闲的p
+
+ 通过运行时包的初始化启动进程。在程序启动时通过`runtime scheduler`来启动调度循环 
+
+### sync.Map优缺点
+- 优点：
+    - 1.并发安全
+    - 2.简化代码
+- 缺点：
+    - 1.性能：对于频繁的写入，性能较低    
+    - 2.拓展性不好
+
+性能优化：
+
+ - 1.采用分离锁和原子操作来避免全局锁竞争
+ - 读写分离：sync.Map将读多和写少的操作分离开   
+
+### 读写锁底层实现
+`sync.RWMutex`底层是通过包含一个互斥锁和若干个计数器来实现的，
+
+- 写锁：通过一个互斥锁实现
+- 读锁：被多个goroutine同时持有，为了防止读操作频繁申请锁而导致性能下降，读取操作采用计数操作；
+     - 读上锁:判断当前是否可以获取读锁，并使用若干计数器管理其状态。每获取读锁的操作会增加一个读计数，为正时，表示有活跃的读锁
+     - 读解锁：每个释放读锁的操作会减少一个读计数，当读计数降至零食读锁被完全释放 
+ 
+
+### Mutex几种状态
+1. unLocked
+2. Locked
+
+### Mutex的正常模式和饥饿模式
+- 正常模式：Mutex允许多个goroutine等待锁，但不会偏向与其中某一个goroutine，所有等待的goroutine按照进入的顺序获取
+- 饥饿模式：某个goroutine等待锁的时间过长，Mutex进入饥饿模式，Mutex给等待时间最长的Mutex优先权，直到队列中的goroutine全部获取到锁退出饥饿模式
+
+### Mutex允许自旋的条件
+当尝试获取锁的goroutine发现锁已经被其他goroutine占用时，如果锁的持有时间较短(锁预计很快会被释放)，他将进行自旋等待。且系统资源充足。
+
+### Cond
+用于多个goroutine之间实现同步。包含三个主要方法：Wait,Signal和Broadcast。Wait会将调用的goroutine阻塞，直到收到Signal和Broadcast信号；
+示例：
+
+```
+package main
+
+import (
+	"fmt"
+	"sync"
+	"time"
+)
+
+func main() {
+	var mu sync.Mutex
+	cond := sync.NewCond(&mu)
+
+	for i := 0; i < 10; i++ {
+		go func(i int) {
+			cond.L.Lock()
+			defer cond.L.Unlock()
+			cond.Wait()
+			fmt.Printf("Goroutine %d is awake\n", i)
+		}(i)
+	}
+
+	time.Sleep(time.Second)
+	for i := 0; i < 10; i++ {
+		cond.Signal() // 被唤醒的 goroutine 会依次打印消息
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+```
+
+### 原子操作
+指不可分割的操作，在执行过程中不被任何其他操作或线程打断。
+由`sync/atomic`包提供
+
+
+### 原子操作与锁的区别
+- 原子操作是利用硬件支持的原子指令实现的，不需要上下文切换；开销小
+- 锁需要操作系统提供支持，一般涉及上下恩切换
+
+### sync.Pool作用
+主要用于临时对象的缓存，减少GC压力和避免重复创建对象
+
+- 工作原理：底层使用了一个锁个一个线程本地存储来管理池中对象
+
+### goroutine什么时候会被挂起
+1.调用`time.Sleep()`
+2.当前goroutine等待channel操作
+3.系统调用（syscall）
+4.遇到同步原语（mutex,waitgroup）
+5.runtime.Gosched
+
+### g0栈和用户栈
+g0栈和用户栈之间的切换通常发生在执行系统调用时或者运行垃圾收集以及调度器活动需要内核参与的操作时。
+
+ - g0栈：每个操作系统线程M都有一个g0栈，这是用于执行调度和运行时系统代码的栈,由Go运行时分配管理
+ - 用户栈：每个goroutine都有自己的栈，默认大小2kb会动态调整，用于运行应用代码
+
+
+
+### sysmon后台监控线程做了什么
+
+- 垃圾回收的触发
+- 处理抢占
+- M的唤醒
+- 系统监测
+
+
