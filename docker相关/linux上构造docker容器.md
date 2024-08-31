@@ -15,12 +15,12 @@ sudo apt install docker.io
 # 对于CentOS系统
 sudo yum install docker
 
-###2. 启动docker
+### 2. 启动docker
 
 sudo systemctl start docker
 
 
-####3. 配置免密
+#### 3. 配置免密
 cd ~/.ssh
 
 ls 
@@ -59,13 +59,13 @@ sudo add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/l
 
 #### 4.5 安装 Docker Engine-Community
 
-####4.5.1 更新apt包索引
+#### 4.5.1 更新apt包索引
 
 ```
 sudo apt-get update
 ```
 
-####4.5.2 安装最新版本
+#### 4.5.2 安装最新版本
 
 ```
 sudo apt-get install docker-ce docker-ce-cli containerd.io
@@ -83,7 +83,7 @@ sudo service docker stop
 sudo service docker restart
 ```
 
-###7 配置 Docker 用户组
+### 7.配置 Docker 用户组
 
 ```
 sudo usermod -aG docker $USER

@@ -10,7 +10,7 @@ runtime/pprof主要用于可结束的代码块，如一次编解码操作等； 
 
 首先利用runtime/pprof进行性能测评，下列代码主要实现循环向一个列表中append一个元素，只要导入runtime/pprof并添加2段测评代码就可以实现cpu和mem的性能评测。
 
-###如何启动CPU采样
+### 如何启动CPU采样
 
 ```
 import (
@@ -29,7 +29,7 @@ func main() {
 
 go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
 
-###如何启动Goroutine采样
+### 如何启动Goroutine采样
 
 ```
 import (
@@ -45,7 +45,7 @@ func main() {
 ```
 
 
-###如何启动内存采样
+### 如何启动内存采样
 
 
 ```
@@ -67,7 +67,7 @@ func main() {
 go tool pprof http://localhost:6060/debug/pprof/heap
 
 
-###如何启动阻塞和锁竞争采样
+### 如何启动阻塞和锁竞争采样
 
 
 ```
@@ -86,7 +86,7 @@ func main() {
 阻塞分析：go tool pprof http://localhost:6060/debug/pprof/block
 
 
-###如何生成火焰图
+### 如何生成火焰图
 
 
 ```
@@ -100,12 +100,12 @@ go tool pprof -pdf cpu.prof > flamegraph.pdf
 go tool pprof -http=localhost:8080 cpu.prof
 
 
-###top：列出数据
+### top：列出数据
 要列出当前资源的占用情况，可以在 pprof 中使用 top 命令：
 
 
 
-###list：显示详情
+### list：显示详情
 
 当发现某个函数资源占用情况可疑时，可以通过 list 函数名 定位到具体的代码位置
 

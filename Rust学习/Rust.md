@@ -1,6 +1,6 @@
 # Rust
 
-##1.安装
+## 1.安装
 macOS, Linux, or another Unix-like OS.
 
 
@@ -8,7 +8,7 @@ macOS, Linux, or another Unix-like OS.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-###更新/卸载Rust
+### 更新/卸载Rust
 
 
 ```
@@ -18,18 +18,18 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 卸载
 -rustup self uninstall
 ```
-###验证
+### 验证
 
 
 ```
 rustc --version
 ```
 
-###本地文档
+### 本地文档
 安装rust的时候同步安装，可离线浏览，可用`rustup doc`浏览
 
 
-###编译
+### 编译
 
 ```
 rustc xxx.rs
@@ -38,11 +38,11 @@ rustc xxx.rs
 
 较大的rust程序编译需要使用cargo
 
-###Cargo
+### Cargo
 
 cargo是rust的包管理工具和构建系统，可以下载，构建依赖库构建代码，安装rust的时候就会安装cargo，验证是否安装使用`cargo --version`
 
-####使用cargo创建项目
+#### 使用cargo创建项目
 - 创建项目：cargo new hello_cargo
 项目名称是hello_cargo,会创建一个新的目录hello_cargo
  -- Cargo.toml
@@ -83,14 +83,14 @@ edition = "2021"        //使用的Rust版本
 
 - 第一次运行cargo build会在顶层目录生成cargo.lock文件，该文件负责追踪项目依赖的精确版本，无需手动修改
 
-###构建并运行cargo项目
+### 构建并运行cargo项目
 cargo run 编译并运行代码
 
 
-####cargo check 
+#### cargo check 
 cargo check 检查代码，保证能通过编译但不产生任何执行文件
 
-###为发布构建
+### 为发布构建
 - cargo build --release
 - 编译时会进行优化（代码运行的更快但是编译时间更长）
 - 会在target/release中生成可执行文件

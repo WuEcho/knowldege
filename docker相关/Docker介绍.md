@@ -1,17 +1,17 @@
 # Docker介绍
 
 
-##1.概念
+## 1.概念
 　　Docker是一个开源的应用容器引擎，基于Go语言并遵从Apache2.0协议开源。Docker可以让开发者打包他们的应用以及依赖包到一个轻量级，可移植的容器中，然后发布到任何流行的Linux机器上，也可以实现虚拟化。容器是完全使用沙箱机制，相互之间不会有任何接口，可重要的是容器性能开销极低。
 
-###1.1 应用场景
+### 1.1 应用场景
 
 - web应用的自动化打包和发布
 - 自动化测试和持续集成，发布
 - 在服务型环境中部署和调整数据库或其他的后台应用
 - 从头编译或者扩展现有的OpenShift或Cloud Foundry 平台来搭建自己的PaaS环境
 
-##2.架构
+## 2.架构
 
 Docker包含三个基本概念：
 
@@ -32,9 +32,9 @@ Docker使用客户端-服务器(C/S)架构模式，使用远程API来管理和�
 | Docker Machine | Docker Machine是一个简化Docker安装的命令行工具，通过一个简单的命令行即可在相应的平台上安装Docker |
 
 
-##3.安装
+## 3.安装
 
-###3.1 MacOS Docker安装
+### 3.1 MacOS Docker安装
 **使用HomeBrew安装**
 
 ```
@@ -80,7 +80,7 @@ Registry Mirrors:
 Live Restore Enabled: false
 ```
 
-##4.Docke镜像加速
+## 4.Docke镜像加速
 
 国内从 DockerHub 拉取镜像有时会遇到困难，此时可以配置镜像加速器。Docker 官方和国内很多云服务商都提供了国内加速器服务，例如：
 
@@ -128,7 +128,7 @@ Registry Mirrors:
 ```
 
 
-##5.使用
+## 5.使用
 Docker允许在容器内运行应用程序，使用docker run命令在容器内运行一个应用程序。
 输出Hello world
 ```
@@ -142,7 +142,7 @@ Hello world
 - **ubuntu:15.10** 指定要运行的镜像，Docker首先从本地主机上查找镜像是否存在，如果不存在，Docker就会从镜像仓库Docker Hub下载公共镜像.
 - **/bin/echo "Hello world"** : 在启动的容器里面执行的命令
 
-###5.1 运行交互式的容器
+### 5.1 运行交互式的容器
 
 通过docker的两个参数-i,-t，让docker运行的容器实现"对话"的能力:
 ```
@@ -171,7 +171,7 @@ exit
 Echo@EchodeMacBook-Pro ~ % 
 ```
 
-###5.2 启动容器
+### 5.2 启动容器
 
 使用以下命令创建一个以进程方式运行的容器
 ```
@@ -234,7 +234,7 @@ Echo@EchodeMacBook-Pro ~ % docker ps
 ``` 
 可以看到容器已经不在了。
  
-##6.Docker容器使用
+## 6.Docker容器使用
  
 docker客户端很简单，可以直接输入docker命令来查看到Docker客户端的所有命令选项
 
@@ -282,7 +282,7 @@ Options:
       --no-trunc        Do not truncate output
 ```
  
-###6.1 容器使用
+### 6.1 容器使用
 **启动容器**
  以下命令使用ubuntu镜像启动一个容器，参数为以命令行模式进入该容器：
  
