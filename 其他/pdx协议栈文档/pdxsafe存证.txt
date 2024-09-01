@@ -1,0 +1,99 @@
+PDXSafe设计文档 (CRUD and JWT )
+
+1. JWT结构字段含义
+
+header
+{
+	"alg": "ES256",
+	"typ": "JWT"
+}
+
+payload
+{
+    "sk": "", // 被授权方的public key
+    "d" : "",  // domain
+    "k" : "",  // key, 当key为空的时候，该token的权限针对domain，如果不为空，则权限是针对key的。
+    "a" : "",  // “C”, “R”, "U", or "D"
+    "n" : "",  // nounce
+    "ak" : "", // 授权方的public key
+    "s: : ""   // 授权方为本次授权赋予的seq number
+}
+
+data=base64(header)+'.'+base64(payload)
+signature=sign(data, authority_pri_key)
+token=base64(header)+'.'+base64(payload)+'.'+base64(signature)
+
+2. 交易数据结构及其字段含义
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "protos";
+
+// 最外层交易结构体，protobuf封装，放入交易(tx)的data字段中
+message Transaction {
+    uint32 type = 1; // inv(1) or dpl(2), we use 1 for Invocation
+    bytes payload = 2;
+}
+
+// for TX execution or query
+message Invocation {
+    string fcn = 1; //不使用
+    repeated bytes args = 2; //填充序列化后的DomainItem/KeyItem
+    map<string, bytes> meta = 3; //以‘PDX_SAFE_ACTION‘ 和 ’PDX_SAFE_AUTHZ‘为key，存放对应的action和jwt
+}
+
+// PDXSafe支持的操作
+enum PDXS {
+    CREATE_DOMAIN = 0x00;
+    UPDATE_DOMAIN = 0x01;
+    DELETE_DOMAIN = 0x02;
+    GET_DOMAIN = 0x03;
+
+    CREATE_KEY = 0x04;
+    UPDATE_KEY = 0x05;
+    DELETE_KEY = 0x06;
+    GET_KEY = 0x07;
+}
+
+// 对domain操作时传入的参数
+message DomainItem {
+    string name = 1;
+    string type = 2;
+    string desc = 3;
+    repeated bytes Cauth = 4;  //authors can create key under this domain
+    repeated bytes Uauth = 5;
+    repeated bytes Dauth = 6;
+}
+
+// 对key操作时传入的参数
+message KeyItem {
+    string key = 1;
+    bytes value = 2;
+    string desc = 3;
+    repeated bytes Uauth = 4;
+    repeated bytes Dauth = 5;
+}
+
+//填充meta
+mata['PDX_SAFE_ACTION'] = ACTION
+meta['PDX_SAFE_AUTHZ'] = token //JWT
+
+//填充args
+//DomainItem/KeyItem located in invocation.args
+Invocation.args = DomainItem/KeyItem
+
+
+3. send tx
+txinput = Transaction
+
+tx = {"from":"sender",
+      "to": PDXSafe_contract_address,
+      "nonce":xx
+      "gasprice":xxx,
+      "input":txinput,
+}
+send out the tx.
+
+

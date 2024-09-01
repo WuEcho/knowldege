@@ -45,7 +45,7 @@ solidity 代码在部署到以太坊网络之前需要被编译成字节码。�
 }
 ```
 
-以太坊虚拟机是一种基于堆栈的大端虚拟机，字体大小为256位。以太坊虚拟机是以读取操作码的方式进行工作的，操作码(opcode)的长度为一个字节，按照这个规则将object对应的是进行分组为：
+以太坊虚拟机是一种基于堆栈的大端虚拟机。以太坊虚拟机是以读取操作码的方式进行工作的，操作码(opcode)的长度为一个字节，按照这个规则将object对应的值是进行分组为：
 
 ```
 60 80 60 40 52 34 80 15 61 00 10 57 60 00 80 fd 5b 50 61 01 50 80 61 00 20 60 00 39 60 00 f3 fe 60 80 60 40 52 34 80 15 61 00 10 57 60 00 80 fd 5b 50 60 04 36 10 61 00 36 57 60 00 35 60 e0 1c 80 63 2e 64 ce c1 14 61 00 3b 57 80 63 60 57 36 1d 14 61 00 59 57 5b 60 00 80 fd 5b 61 00 43 61 00 75 56 5b 60 40 51 61 00 50 91 90 61 00 a1 56 5b 60 40 51 80 91 03 90 f3 5b 61 00 73 60 04 80 36 03 81 01 90 61 00 6e 91 90 61 00 ed 56 5b 61 00 7e 56 5b 00 5b 60 00 80 54 90 50 90 56 5b 80 60 00 81 90 55 50 50 56 5b 60 00 81 90 50 91 90 50 56 5b 61 00 9b 81 61 00 88 56 5b 82 52 50 50 56 5b 60 00 60 20 82 01 90 50 61 00 b6 60 00 83 01 84 61 00 92 56 5b 92 91 50 50 56 5b 60 00 80 fd 5b 61 00 ca 81 61 00 88 56 5b 81 14 61 00 d5 57 60 00 80 fd 5b 50 56 5b 60 00 81 35 90 50 61 00 e7 81 61 00 c1 56 5b 92 91 50 50 56 5b 60 00 60 20 82 84 03 12 15 61 01 03 57 61 01 02 61 00 bc 56 5b 5b 60 00 61 01 11 84 82 85 01 61 00 d8 56 5b 91 50 50 92 91 50 50 56 fe a2 64 69 70 66 73 58 22 12 20 52 23 34 df d7 de cc 64 3e eb 64 4e 28 d6 d7 f1 1b ae 5f 5b 74 d1 4e 33 98 0a 35 d1 2b c7 77 1f 64 73 6f 6c 63 43 00 08 11 00 33
@@ -53,7 +53,7 @@ solidity 代码在部署到以太坊网络之前需要被编译成字节码。�
 切分完成后根据[此表](https://www.ethervm.io/)规则可以将上面的字节码转换成opcode,在代码中也有所体现，路径为core/vm/opcodes.go转换完成以后的结果就是opcodes的内容。 在以太坊代码中每个opcode都对应有自己的需要执行的函数以及消耗的gas值，该部分在路径core/vm/jump_table.go文件，如图所示：
 
 ```
-    GAS: {
+     GAS: {
 			execute:     opGas,
 			constantGas: GasQuickStep,
 			minStack:    minStack(0, 1),
@@ -79,7 +79,7 @@ solidity 代码在部署到以太坊网络之前需要被编译成字节码。�
 		},
 ```
 
-
+对应函数的详细实现
 ```
 // opPush1 is a specialized version of pushN
 func opPush1(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
@@ -108,110 +108,6 @@ func opPush1(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]by
 ```
 首先calldata规则如下：
 a. **函数选择器：** call data的前4个bytes对应了合约中的某个函数。因此evm通过这4个bytes,可以跳转到相应的函数。
-
-```
-1  PUSH1 0x80 
-2  PUSH1 0x40 
-3  MSTORE 
-4  CALLVALUE 
-5  DUP1 
-6  ISZERO 
-7  PUSH2 0x10 
-8  JUMPI 
-9  PUSH1 0x0 
-10 DUP1 
-11 REVERT 
-12 JUMPDEST 
-13 POP 
-14 PUSH2 0x150 
-15 DUP1
-16 PUSH2 0x20
-17 PUSH1 0x0
-18 CODECOPY
-19 PUSH1 0x0
-20 RETURN
-21 INVALID
-22 PUSH1 0x80
-23 PUSH1 0x40
-24 MSTORE
-25 CALLVALUE
-26 DUP117
-27 ISZERO
-28 PUSH2 0x10
-29 JUMPI 
-30 PUSH1 0x0
-31 DUP1
-32 REVERT
-33 JUMPDEST
-34 POP
-35 PUSH1 0x4
-36 CALLDATASIZE
-37 LT
-38 PUSH2 0x36
-39 JUMPI
-40 PUSH1 0x0
-41 CALLDATALOAD
-42 PUSH1 0xE0
-43 SHR
-44 DUP1
-45 PUSH4 0x2E64CEC1 
-46 EQ
-47 PUSH2 0x3B
-48 JUMPI
-49 DUP1
-50 PUSH4 0x6057361D
-51 EQ
-52 PUSH2 0x59
-53 JUMPI
-54 JUMPDEST
-55 PUSH1 0x0
-56 DUP1
-57 REVERT
-58 JUMPDEST
-59 PUSH2 0x43
-60 PUSH2 0x75
-61 JUMP
-62 JUMPDEST
-63 PUSH1 0x40
-64 MLOAD
-65 PUSH2 0x50
-66 SWAP2
-67 SWAP1
-68 PUSH2 0xA1
-69 JUMP
-70 JUMPDEST
-71 PUSH1 0x40
-72 MLOAD
-73 DUP1
-74 SWAP2
-75 SUB
-76 SWAP1
-77 RETURN
-78 JUMPDEST
-79 PUSH2 0x73
-80 PUSH1 0x4
-81 DUP1
-82 CALLDATASIZE
-83 SUB
-84 DUP2
-85 ADD
-86 SWAP1
-87 PUSH2 0x6E
-88 SWAP2
-89 SWAP1
-90 PUSH2 0xED
-91 JUMP
-92 JUMPDEST
-93 PUSH2 0x7E
-94 JUMP
-...
-```
-
-当产生函数调用时，首先从合约账户里面取出code,依次调用，当执行到CALLDATASIZE(L36)时会读取input的size（读取的就是function的hash）,L37会和4比较，作为JUMPI（L39)的跳转条件，
-1.如果input的size比4小，则跳转到fallback函数
-2.如果input的size与4相等，则会继续执行每个指令，CALLDATALOAD(L42)会从input的具体指，与L45，L50的哈希值进行比较，以L50为例L51会比较input的hash与L50的值是否相同，如果相同则跳转到L52标明的地址0x59（L89），否则一直执行直到找寻到相等的
-
-
 b. **参数读取：** call data是32bytes的整数倍(头4bytes的函数签名除外)，evm通过CALLDATALOAD指令，每次能从32bytes的值，放入stack中
 因此将如上的calldata进行拆分，可以拆成如下两个部分：
 1.0x6057361d 
@@ -380,7 +276,6 @@ CallerAddress: B
 Caller:        B
 self:          B
 ```
-
 
 
 

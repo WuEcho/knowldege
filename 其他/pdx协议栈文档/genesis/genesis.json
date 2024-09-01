@@ -1,0 +1,49 @@
+{
+  "config": {
+    "chainId": 738,    
+    "utopia": {        
+      "noRewards":false, 
+      "cfd":10,          
+      "numMasters":3,   
+      "blockDelay":5000, 
+      "hypothecation":true,
+      "perQuorum":true,
+      "publicAccount":"0x86082fa9d3c14d00a8627af13cfa893e80b39101",
+      "voterAddrs":["0x86082fa9d3c14d00a8627af13cfa893e80b39101","0x86082fa9d3c14d00a8627af13cfa893e80b39101"],
+      "minerRewardAccount":"0x86082fa9d3c14d00a8627af13cfa893e80b39101",
+      "quorumResetAccounts":["0x86082fa9d3c14d00a8627af13cfa893e80b39101","0x86082fa9d3c14d00a8627af13cfa893e80b39101"],
+      "quorumResetAfterHeight":1,
+      "rewardTotal":"100000",
+      "allowIncrease":"0x86082fa9d3c14d00a8627af13cfa893e80b39101",
+      "gasLess":true,      
+      "consortium":true,   
+      "tokenChain": [
+        {
+            "chainId":"739",
+            "chainOwner":"123456",
+            "tokenSymbol":"15432523",
+            "rpcHosts":[
+                "http://127.0.0.1:8545"
+            ]
+        },
+        {
+          
+              "chainId":"739",
+              "chainOwner":"123456",
+              "tokenSymbol":"15432523",
+              "rpcHosts":["http://127.0.0.1:8545"]
+        }
+    ]  
+    },
+    "sm2Crypto":true
+  },
+  
+  "nonce": "0x0000000000000042",
+  "difficulty": "0x1000",
+  "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "coinbase": "0x0000000000000000000000000000000000000000",
+  "timestamp": "0x00",
+  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "extraData": "0x86082fa9d3c14d00a8627af13cfa893e80b39101",   
+  "gasLimit": "0x271d94900"  
+}
