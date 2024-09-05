@@ -1390,6 +1390,9 @@ contract modifysample {
     
 ```
 
+#### 3.7.0 事件签名
+对事件签名进行`keccak256`运算得到事件签名哈希值。keccak256(Transfer(address,address,uint256))，事件签名往往出现在receipt中的第一个主题
+
 #### 3.7.1 事件索引 indexed
 在定义事件时，我们可以给某些事件参数加上 indexed， 例如：
 
@@ -1402,7 +1405,7 @@ event Deposit(address indexed _from, uint _value);  // 定义事件
 通常我们有三个方法：
 
  - 通过交易收据获取事件
-    可以直接在Remix 控制台通过输入 web3.eth.getTransactionReceipt(hash) 获取收据
+    可以直接在Remix 控制台通过输入`web3.eth.getTransactionReceipt(hash)`获取收据
     
  - 使用过滤器获取过去事件
     Web3.js 对应的接口为`getpastlogs`，`Ethers.js`对应的接口为`getLogs`
@@ -1480,6 +1483,25 @@ contractInstance.events.Deposit({
 1. 如果合约中没有使用该变量，应该考虑用事件存储数据
 2. 如果需要完整的交易历史，请使用事件
 3. 事件存储数据
+
+#### 3.7.4 主题值的计算
+EVM在很多方面基于32字节的字宽，这要求所有日志的主题也必须符合这种固定大小。
+
+- 对于固定大小的类型
+（如 uint256, address 等），直接使用其 ABI 编码的结果。比如，地址会被填充到 32 字节。
+
+- 对于动态类型
+（如 string 或 bytes），你不能直接将它们标记为 indexed，因为它们是动态的。确实需要在事件中使用这些类型的数据作为筛选条件，通常的做法是在触发事件时，传入这些值的哈希值。
+
+#### 3.7.5 匿名事件
+事件也可以被声明为匿名事件。匿名事件的第一个主题不会自动包括事件的签名哈希。这意味着匿名事件的第一个主题可以自定义或使用与非匿名事件完全不同的数据，使得对于某些特定应用，可以有更灵活的索引和匹配方式。
+**声明方式：**匿名事件的声明和触发与普通事件类似，只是加上了`anonymous`关键字。
+示例：
+
+```
+event myEvent(address indexed addr,uint value) anonymous;
+```
+
 
 ### 3.8 访问函数(Getter Funtions)
 编辑器会自动为所有**public**修饰的变量创建访问函数。
@@ -1898,19 +1920,155 @@ contract testLib {
 }
 ```
 
-### 3.14 其他
 
-**Create2方法：**
+### 3.14 ABI
+ABI （Application Binary Interfaces）
+
+#### 3.14.1 ABI 接口描述
+编译代码以后，会得到两个重要东西（称为artifact）：bytecode（字节码） 和 ABI 接口描述。
+
+#### 3.14.2 ABI 编码
+大部分时候，我们不需要了解详细的编码规则，Solidity / web3.js / ethers.js 库都提供了编码函数，例如在 Solidity 中，可通过以下代码获得完整的编码：
+
+```
+// 编码函数及参数 
+abi.encodeWithSignature("set(uint256)", 10)
+
+// 编码参数
+uint a = 10;
+abi.encode(a);   // 0x000000000000000000000000000000000000000000000000000000000000000a
+```
+
+#### 3.14.3 Solidity 编码函数
+Solidity 中有 5 个函数：`abi.encode`, `abi.encodePacked`, `abi.encodeWithSignature`, `abi.encodeWithSelector` 及`abi.encodeCall` 用于编码。
+ 
+ - `abi.encode`：`encode()` 方法按EVM标准规则对参数编码，编码时每个参数按32个字节填充0 再拼在一起
+ - `abi.encodePacked`：参数在编码拼接时不会填充0， 而是使用实际占用的空间然后把各参数拼在一起，如果编码结果不是32字节整数倍数时，再末尾依旧会填充0。在使用![EIP712](https://learnblockchain.cn/2019/04/24/token-EIP712) 时，需要对一些数据编码，就需要使用到`encodePacked` 
+ - `abi.encodeWithSignature`: 对函数签名及参数进行编码
+    示例：
+    
+    ```
+    abi.encodeWithSignature("set(uint256)", 10)
+    ```
+
+- `abi.encodeWithSelector`: 它与`abi.encodeWithSignature`功能类似，只不过第一个参数为**4个字节**的**函数选择器**
+    示例：
+
+    ```
+        abi.encodeWithSelector(0x60fe47b1, 10);
+        // 等价于
+        abi.encodeWithSelector(bytes4(keccak256("set(uint256)")), 10);
+    ```
+
+- `abi.encodeCall`: `encodeCall`可以通过函数指针，来对函数及参数编码，在执行编码时，执行完整的类型检查, 确保类型匹配函数签名。只能用于公开或外部函数，Solidity 0.8.11 引入的功能。
+    
+  使用场景：
+  
+  - 合约间调用：
+    当你需要通过低级调用（如 call 或 delegatecall）与另一个合约进行交互时，可以使用 abi.encodeCall 对目标函数及其参数进行编码。这种方式比手动拼接函数签名和参数更加安全、方便。
+
+  - 创建执行交易的calldata：
+    当你需要通过像多签钱包、代理合约或其他执行者发起交易时，`abi.encodeCall`可以用来生成带有特定函数调用和参数的`calldata`。
+
+  - 非标准合约调用：
+    如果目标合约是一个代理合约，或者目标函数具有复杂的函数签名，`abi.encodeCall`能保证你提供的参数与函数签名严格匹配。
+    
+  示例：
+  
+```
+contract Example {
+    function callAnotherContract(address target, uint256 x, string memory y) external {
+        // 编码函数调用和参数
+        bytes memory data = abi.encodeCall(OtherContract.someFunction, (x, y));
+        
+        // 使用低级调用
+        (bool success, bytes memory returnData(一般情况下可省略)) = target.call(data);
+        require(success, "Low-level call failed");
+    }
+}
+
+```  
+
+#### 3.14.4 ABI 解码
+解析日志里面的数据：
+
+```
+//其中data为日志数据
+// solidity decode
+(x) = abi.decode(data, (uint));
+
+// ethers.js
+const SetEvent = new ethers.utils.Interface(["event Set(uint256 value)"]);
+let decodedData = SetEvent.parseLog(event);
+```
+
+#### 3.14.5 ABI 编解码可视化工具
+- 函数选择器的查询及反查 ：[https://chaintool.tech/querySelector](https://chaintool.tech/querySelector)
+- 事件签名的 Topic 查询：[https://chaintool.tech/topicID](https://chaintool.tech/topicID)
+- Hash 工具提供Keccak-256 及 Base64：[https://chaintool.tech/hashTool](https://chaintool.tech/hashTool)
+- 交易数据（calldata）的编码与解码： [https://chaintool.tech/calldata](https://chaintool.tech/calldata)
+
+### 3.16 call 与 delegatecall
+
+#### 3.16.1 底层调用
+地址类型有3个底层的成员函数:
+
+- targetAddr.call(bytes memory abiEncodeData) returns (bool, bytes memory)
+
+- targetAddr.delegatecall(bytes memory abiEncodeData) returns (bool, bytes memory)
+
+- targetAddr.staticcall(bytes memory abiEncodeData) returns (bool, bytes memory)
+ 
+ `call`是常规调用，`delegatecall`为委托调用，`staticcall`是静态调用（不修改合约状态，相当于调用 view 方法）
+ 
+ 
+#### 3.16.2 区别
+
+- `delegatecall`委托调用没有上下文的切换，它像是给你一个主人身份（委托），你可以在当下空间做你想做的事；
+- `call`是常规调用，每次常规调用都会切换上下文
+
+**注意：**如果给一个合约地址转账x.func()时，合约的receive函数或fallback函数会随着transfer调用一起执行（这个是EVM特性），而send()和transfer()的执行只会使用2300 gas，因此在接收者是一个合约地址的情况下，很容易出现receive函数或fallback函数把gas耗光而出现转账失败的情况。
+
+```
+function safeTransferETH(address to, uint256 value) internal {
+    (bool success, ) = to.call{value: value}(new bytes(0));
+    //addr.call{gas:1000, value: 1 ether}(methodData);
+    require(success, 'TransferHelper::safeTransferETH: ETH transfer failed');
+}
+```
+ 
+ 
+### 3.15 合约内部创建合约
+#### 3.15.1 使用 create 创建合约
+`create`的用法很简单，就是`new`一个合约，并传入新合约构造函数所需的参数：
+
+```
+Contract x = new Contract{value: _value}(params)
+```
+
+#### 3.15.2 合约地址的计算
+当使用`create`创建合约时，合约的地址取决于创建合约的地址（发送者）和该地址发起的交易数（nonce）。
+**计算方式为：**`keccak256(rlp([sender, nonce]))`，其中，nonce 是一个从 1 开始的计数器，表示从该地址部署的合约数量。**注意：**此处的nonce与发送交易时的nonce并不同。
+
+- create地址不易控制，根据创建者地址以及nonce创建`keccak256(rlp.encode([sender,nonce]))[12:]`
+
+在使用`new`时实际上是在发送一个特殊的交易，这个交易在 EVM 中创建和存储新合约的字节码。
+ 
+#### 3.15.3 使用 create2 创建合约
 create2方法使用过合约加上一个盐，来部署合约，因此新部署的可约地址是可预测的。
+**合约地址细节：**
 
-合约地址细节：
+- create2确定性创建合约`keccak256(bytes1(0xff)++sender++salt++keccak256(init_code))[12:]`
 
-1.create地址不易控制，根据创建者地址以及nonce创建`keccak256(rlp.encode([sender,nonce]))[12:]`
+这个公式中的组件包括：
 
-2.create2确定性创建合约`keccak256(0xff++sender++salt++keccak256(code))[12:]`
+- 0xff：一个固定的前缀。
+- sender_address：部署合约的地址。
+- salt：一个由开发者指定的32字节值。
+- init_code：合约的初始化字节码。//bytes memory bytecode = type(CustContractName).creationCode;
+- [12:]：表示取结果的最后20字节作为地址。
 
-
-示例如下：
+ps: `计算出来的hash值转地址： address(uint160(uint256(hash)))`
 
 ```
 // SPDX-License-Identifier: MIT
@@ -1949,6 +2107,334 @@ contract CreateFactory{
         }
 }
 ```
+
+
+### 3.16 存储模式与gas优化
+
+#### 3.16.1 Storage 优化
+主要的优化方法包括：
+
+- 1.整合变量 
+    将多个较小的变量打包到一个或多个更大的存储槽中，Solidity 中的存储是按照槽（32字节）组织的。尝试将多个较小的变量（如uint128，uint64等）组合在一个uint256中
+    
+    示例：
+    
+```
+// 较低效的方式，以下三个变量打包两个槽中
+contract Bad {
+    uint64 public value1;
+    uint128 public value2;
+    uint64 public value3;
+}
+
+// 更高效的方式，以下三个变量打包到一个槽中
+contract Good {
+    uint64 public value1;
+    uint64 public value3;
+    uint128 public value2;
+}
+```
+
+- 2.使用更紧凑的数据类型
+    实际的应用需求选择最合适的数据类型。但注意，函数操作中使用较小类型（小于 uint256）可能会增加 gas 消费，因为 EVM 在操作中会将它们转换为256位。
+
+- 3.删除不必要的存储变量
+    分析合约，确保只存储必要的变量。如果某些数据可以通过计算得出，则无需将其存储在状态变量中。
+
+- 4.避免在循环中使用存储变量
+    尽量避免在循环中读取或写入存储变量。
+    示例：
+    
+```
+uint256[] public values;
+
+// 较低效的方式：在循环中频繁读/写存储
+function bad(uint256[] memory newValues) public {
+    for (uint i = 0; i < newValues.length; i++) {
+        values[i] = newValues[i];
+    }
+}
+
+// 更高效的方式：使用内存数据进行操作，之后写回存储
+function good(uint256[] memory newValues) public {
+    uint256[] memory tempValues = values;
+    for (uint i = 0; i < newValues.length; i++) {
+        tempValues[i] = newValues[i];
+    }
+    values = tempValues;
+}
+```
+
+#### 3.16.2 Memory 优化
+
+- 1.避免在内存中复制大的数据结构，尽可能使用指针
+- 2.准确计算函数的内存使用，尽量减少不必要的内存占用。
+
+#### 3.16.3 Calldata 优化
+calldata 类型的数据访问成本通常比 memory 低，因为它直接操作输入数据，避免了额外的内存分配。在函数中接收外部传入的数据时,使用`calldata`。它是一种不可修改的、只读的存储区域。
+
+### 3.17 代理合约
+代理合约是一种特定类型的智能合约，其主要作用是作为其他合约的代表或中介。允许用户通过它们与区块链进行直接交互，同时管理一个指向实际执行逻辑的逻辑合约（也称为实现合约）的地址。
+
+#### 3.17.1 基本原理及组件
+- 1.代理合约:
+ - 用户实际上是与代理合约进行交互
+ - 代理合约管理自身的状态变量
+ - 代理合约通常包含一个指向逻辑合约的地址变量
+
+- 2.逻辑合约：
+ - 负责业务逻辑的实现
+ - 可以升级而不影响由代理合约维护的数据。
+
+#### 3.17.2 实现步骤
+   - 1.创建逻辑合约
+ 
+```
+ // SPDX-License-Identifier: MIT
+ pragma solidity ^0.8.0;
+
+ contract Logic{
+     address public logicAddress; // 没用上，但是这里占位是为了防止存储冲突
+     uint public count;
+
+     function incrementCounter() public {
+         count += 1;
+     }
+
+     function getCount() public view returns (uint) {
+         return count;
+     }
+ }
+```
+
+   - 2.编写代理合约 
+  在代理合约中，任何非直接调用的函数都会通过`fallback`函数被重定向并使用`delegatecall`在逻辑合约上执行。
+ 
+```
+ // SPDX-License-Identifier: MIT
+ pragma solidity ^0.8.0;
+
+     contract Proxy {
+         address public logicAddress;
+         uint public count;
+
+         constructor(address _logic) {
+             logicAddress = _logic;
+         }
+
+         // 确保只有可信的地址可以更新逻辑合约地址
+         function upgradeLogic(address _newLogic) public {
+             logicAddress = _newLogic;
+         }
+
+         fallback() external payable {
+             _fallback(logicAddress);
+         }
+
+         receive() external payable {
+             _fallback(logicAddress);
+         }
+
+         function _fallback(address logic) internal {
+             // 通过 delegatecall 调用逻辑合约的函数，并返回数据
+             assembly {
+                 //将调用数据（msg.data）从calldata复制到内存中。
+                 //第一个参数0表示从内存位置 0 开始复制
+                 //第二个参数0表示在calldata（调用数据）中，从哪个位置开始复制数据。
+                 calldatacopy(0, 0, calldatasize())
+
+                 //1. gas()：传递给目标合约的当前剩余可用 Gas 量。
+                 //2. logic:目标合约的地址。
+                 //3. 0:表示输入数据在内存中的起始位置。
+                 //4. calldatasize():返回调用时输入数据的大小（以字节为单位）
+                 //5. 0：这是表示输出数据存储在内存中的起始位置
+                 //6. 0：这是表示预留的输出数据的内存大小。在这里是 0，
+                 //意味着在调用前不知道返回数据的大小，所以先不预留内存空间。
+                 //返回数据的大小会在调用完成后通过 returndatacopy 来处理。
+                 let result := delegatecall(gas(), logic, 0, calldatasize(), 0, 0)
+
+                 //returndatacopy 是一种内联的低级函数，
+                 //它将调用之后返回的数据复制到内存中。
+                 //1. 0: 返回数据存储在内存中的起始位置。
+                 //2. 0: 从返回数据中开始复制的偏移量。
+                 //3. returndatasize() 返回上一次低级调用（如 delegatecall 或 call）的返回数据大小（以字节为单位）。
+                 returndatacopy(0, 0, returndatasize())
+
+                 switch result
+                 // delegatecall returns 0 on error.
+                 case 0 {
+                     revert(0, returndatasize())
+                 }
+                 //当 result 为非零（即调用成功）时执行这个 default 分支。
+                 default {
+                    //1. 0：表示从内存地址 0 开始读取返回数据（这是成功时返回数据的起始位置）。
+                     return(0, returndatasize())
+                 }
+             }
+         }
+     }
+ }
+```
+
+   - 3. 合约部署与使用:
+     - 部署逻辑合约，并记下其地址
+     - 使用逻辑合约的地址作为参数，部署代理合约
+     - 通过代理合约地址调用逻辑合约的功能
+
+#### 3.17.3 Delegate Call 和 存储冲突
+`delegatecall`是一种特殊的函数调用，使得一个合约（比如代理合约）能够调用另一个合约（比如逻辑合约）的函数，并在代理合约的存储环境中执行这些函数。也带来了存储冲突的风险。存储冲突主要发生在逻辑合约和代理合约的存储布局不匹配的情况下。
+
+  - 场景1：存储布局不一致
+    假设逻辑合约Logic中先声明的是`uint public count`;，而代理合约 Proxy 中先声明的是`address public logicAddress`;。这种情况下，当Proxy使用`delegatecall`调用Logic中的`incrementCounter()`方法时，它本意是修改count的值，但由于存储布局的不匹配，实际上它会错误地改变代理合约`logicAddress`的存储位置的内容。
+    
+| Proxy | Logic |  |
+| --- | :-: | :-: |
+| address logicAddress | uint256 count | <=== 存储冲突 |
+| uint256 count | address not_used |  |
+
+  - 场景2：升级导致的冲突
+  即使最初的存储布局是匹配的，合约升级也可能引入新的存储冲突。比如，Logic V2中，调整了变量foo和bar的位置，会导致存储冲突：
+
+| Proxy | Logic1 | Logic2 |   |
+| --- | --- | --- | --- |
+| address logicAddress | address not_used | address not_used |    |
+| uint256 count | uint256 count | uint256 count |    |
+| address foo | address foo | address bar |  <=== 存储冲突，V2 bar 变量对应 Proxy 中的 foo  |
+| address bar | address bar | address foo |  <=== 存储冲突，V2 foo 变量对应 Proxy 中的 bar  |
+ 
+### 3.18 可升级合约
+ 
+ - **透明代理模式**：在透明代理模式中，存在一个管理员地址独有的权限来升级智能合约。用户与合约的交互对用户完全透明，即用户不需要了解幕后的实现合约。
+ 示例代码：
+ 
+```
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// 逻辑合约
+contract TransparentLogic {
+    address public logicAddress; // 防止存储冲突
+    address public adminAddress; // 防止存储冲突
+    uint public count;
+
+    function incrementCounter() public {
+        count += 1;
+    }
+
+    function getCount() public view returns (uint) {
+        return count;
+    }
+}
+
+// 代理合约
+contract TransparentProxy {
+    address public logicAddress; // 逻辑合约地址
+    address public adminAddress; // 管理员地址
+    uint public count;
+
+    constructor(address logic) {
+        logicAddress = logic;
+        adminAddress = msg.sender;
+    }
+
+    function upgrade(address newLogic) public {
+        require(msg.sender == adminAddress, "Only admin"); // 限制了只能是管理员才能调用
+        logicAddress = newLogic;
+    }
+
+    fallback() external payable {
+        require(msg.sender != adminAddress, "Admin not allowed"); // 限制了调用者不能是管理员
+        _fallback(logicAddress);
+    }
+
+    receive() external payable {
+        _fallback(logicAddress);
+    }
+
+    function _fallback(address logic) internal {
+        // ...
+        }
+    }
+}
+```
+
+- **UUPS 模式：**UUPS（Universal Upgradeable Proxy Standard，通用升级代理标准）模式通过实现合约本身的逻辑来控制升级的过程。
+   UUPS 中的实现合约包括**业务逻辑**和**升级逻辑**。实现合约内有一个专门的函数用于修改存储实现合约地址的变量，这使得实现合约可以更改其自身的逻辑。当需要升级合约时，通过在实现合约中调用一个特殊的更新函数来更改指向新合约的地址，从而实现逻辑的更换，同时保留存储在代理合约中的状态数据。
+   示例：
+   
+```
+// 实现合约
+contract UUPSLogic {
+    address public logicAddress; // 防止存储冲突
+    address public adminAddress; // 防止存储冲突
+    uint public count;
+
+    function incrementCounter() public {
+        count += 1;
+    }
+
+    function getCount() public view returns (uint) {
+        return count;
+    }
+
+    function upgrade(address newLogic) public {
+        require(msg.sender == adminAddress, "Only admin");
+        logicAddress = newLogic;
+    }
+}
+
+// 代理合约
+contract UUPSProxy {
+    address public logicAddress; // 逻辑合约地址
+    address public adminAddress; // 管理员地址
+    uint public count;
+
+    constructor(address logic) {
+        logicAddress = logic;
+        adminAddress = msg.sender;
+    }
+
+    fallback() external payable {
+        _fallback(logicAddress);
+    }
+
+    receive() external payable {
+        _fallback(logicAddress);
+    }
+
+    function _fallback(address logic) internal {
+        // ... 
+    }
+}
+```
+与透明代理模式不同，升级函数（upgrade()）位于实现合约中，而代理合约中不存在升级的逻辑。另外，fallback()函数不需要检查调用者是否是管理员，可以节省gas。
+
+
+#### 3.18.1 EIP-1967
+未了避免存储冲突可以采用`EIP-1967`提出的代理存储槽标准。EIP-1967 旨在为智能合约的升级模式提供一种标准化和安全的实现方法。该标准主要关注使用代理模式进行智能合约升级的流程，提高智能合约系统的透明性和可操作性。
+
+**EIP-1967 主要内容:**
+一种标准化的方法来存储关键信息，如实现合约的地址，到固定且已知的存储位置。这主要包括两个方面:
+ 
+ - 1.实现合约地址（implementation address）:实现合约地址存储在特定的槽位`0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc`
+该槽位通过`bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1)`计算得出。
+ 
+ - 2.管理员地址（admin address）:合约的管理员（通常负责合约升级）地址存储在特定的槽位`0xb53127684a568b3173ae13b9f8a6016e243e63b6eb8ee141579563b1e0cad5ff`
+该槽位通过`bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1)`计算得出。
+ 
+ - 3.Beacon 合约地址:（Beacon 合约的主要功能是充当“路由器”或“中介”，使得其他合约可以通过 Beacon 合约动态地链接到更新后的逻辑代码，而不需要直接修改或重新部署原始合约。）Beacon 合约地址存储在特定的槽位`0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50`
+该槽位通过`bytes32(uint256(keccak256('eip1967.proxy.beacon')) - 1)`计算得出。
+
+
+### 3.19 销毁合约
+`selfdestruct`是 Solidity 中的一种特殊函数，用于销毁合约。销毁合约后，合约的代码和存储都将从区块链中移除，合约剩余的以太币将被发送到指定的地址。
+语法：`selfdestruct(address payable 0x00xxxx);`
+
+- **伦敦升级:**不仅能收回部分 gas（与删除的数据量有关），还会在结算时，根据当前的 gas 消耗返还一定比例的已消耗 gas 给执行者。伦敦升级后（EIP-3529）selfdestruct 操作不会再返还 gas。
+- **上海升级:**升级后（EIP-6049，solidity v0.8.18），selfdestruct 视为已弃用，编译器将对其使用发出警告，不再建议使用。
+- **坎昆升级:**坎昆升级后（EIP-6780，solidity v0.8.24），selfdestruct 只发送剩余的以太币，不会清除合约的代码和存储。除非在同一个交易中部署和销毁合约。
+ 
+### 3.20 其他
 
 **mutal call**
 
@@ -2005,17 +2491,13 @@ alic ---> test ---> delegatecall ---> test (msg.sender = alic)
 多重委托调用可能存在的漏洞：mint()即铸造方法，在多重委托调用中，可以多次调用铸造方法，以达成转一次币但是余额确实多次的结果。解决以上问题的办法有：1.在多重委托调用的函数中禁止使用payable方法 2.在方法中增加余额的方法采用非累加方法；
 
 
-**- new**
--
-创建对象，合约等
+- **new**:创建对象，合约等
 
-**-delete**
--
-
-- delete操作符可以用于任何变量，将其设置成默认值
-- 如果对动态数组使用delete，则删除所有元素，其长度变为零
-- 如果对静态数组使用delete,则重置所有索引的值
-- 如果对map类型使用delete，什么都不会发生，但如果对map类型中的一个键使用delete，则会删除与该相关的值
+- **delete**
+    - delete操作符可以用于任何变量，将其设置成默认值
+    - 如果对动态数组使用delete，则删除所有元素，其长度变为零
+    - 如果对静态数组使用delete,则重置所有索引的值
+    - 如果对map类型使用delete，什么都不会发生，但如果对map类型中的一个键使用delete，则会删除与该相关的值
 
 ```js
     //1.string 
