@@ -1,4 +1,5 @@
 # 深入理解 Op-stack 跨链调用过程及 ETH 和 ERC20 的充值提现
+
 ## 1. 信使合约
 信使合约的主要功能是跨链通信，核心方法为`sendMessage` 与 `relayMessage`；
 
@@ -25,7 +26,7 @@ OptimismPortal 合约是 op-stack 的充值提现纽带合约
 
 ## 4. L1->L2 充值
 ### 4.1 ETH 充值
-
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethwithdraw.png)
 
 - User
    - 用户调用 depositETH 给自己的地址充值，或者调用 depositETHTo 给指定的 to 地址充值；
@@ -67,9 +68,9 @@ receive() external payable override onlyEOA {
 ### 4.2 ERC20 充值
 ethdeposit
 
-User
+- User
 
-用户调用 depositERC20 给自己的地址充值，或者调用 depositERC20To 给指定的 to 地址充值；
+ - 用户调用 depositERC20 给自己的地址充值，或者调用 depositERC20To 给指定的 to 地址充值；
 L1StandardBridge
 
 不管是调用 depositERC20 还是 depositERC20To，最终都会进入到一个函数 _initiateBridgeERC20；
