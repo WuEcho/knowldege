@@ -26,7 +26,7 @@ OptimismPortal 合约是 op-stack 的充值提现纽带合约
 
 ## 4. L1->L2 充值
 ### 4.1 ETH 充值
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethwithdraw.png)
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethdeposit.png)
 
 - User
    - 用户调用 depositETH 给自己的地址充值，或者调用 depositETHTo 给指定的 to 地址充值；
