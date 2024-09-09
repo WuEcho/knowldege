@@ -66,78 +66,91 @@ receive() external payable override onlyEOA {
 因此，直接把 ETH 转入到 OptimismPortal 和 L1StandardBridge 里面，也属于 ETH 的充值交易
 
 ### 4.2 ERC20 充值
-ethdeposit
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc20deposit.png)
 
 - User
+  - 用户调用 depositERC20 给自己的地址充值，或者调用 depositERC20To 给指定的 to 地址充值；
+- L1StandardBridge
+  - 不管是调用 `depositERC20` 还是 `depositERC20To`，最终都会进入到一个函数 `_initiateBridgeERC20`；
+  - 判断是否为 OptimismMintableERC20 ，如果是， 调用 burn 方法销毁 token; 如果不是，将 token 转到桥里面，并将资金记录到账本中；账本代码如下：
 
- - 用户调用 depositERC20 给自己的地址充值，或者调用 depositERC20To 给指定的 to 地址充值；
-L1StandardBridge
-
-不管是调用 depositERC20 还是 depositERC20To，最终都会进入到一个函数 _initiateBridgeERC20；
-判断是否为 OptimismMintableERC20 ，如果是， 调用 burn 方法销毁 token; 如果不是，将 token 转到桥里面，并将资金记录到账本中；账本代码如下：
+```
 mapping(address => mapping(address => uint256)) public deposits;
 deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] + _amount;
-接下来调用 CrossDomainMessenger 的 sendMessage 发送跨链消息，调用 L1CrossDomainMessenger 的 _sendMessage 方法成功之后，会对 nonce 进行自增加 1
-L1CrossDomainMessenger
+```
+ 
+ - 接下来调用 CrossDomainMessenger 的 sendMessage 发送跨链消息，调用 L1CrossDomainMessenger 的 _sendMessage 方法成功之后，会对 nonce 进行自增加 1
 
-_sendMessage 会去调用 OptimismPortal 的 depositTransaction，
-depositTransaction 会抛出 TransactionDeposited 事件
-Op-node 和 op-geth
+- L1CrossDomainMessenger
 
-Op-node 监听到 TransactionDeposited，会去构建充值交易的 Attrs, 指到 op-geth 在 L2 执行该充值交易
-Op-geth 会去调用 L2StandardBridge 合约的 finalizeDeposit
-L2StandardBridge
+  - _sendMessage 会去调用 OptimismPortal 的 depositTransaction，
+  - depositTransaction 会抛出 TransactionDeposited 事件
 
-finalizeBridgeERC20 函数会去执行 mint Token 或者 token Transfer 的操作
-若是 OptimismMintableERC20，执行 mint 操作
-若不是 OptimismMintableERC20，更新账本，代码如下：
+- Op-node 和 op-geth
+
+  - Op-node 监听到 TransactionDeposited，会去构建充值交易的 Attrs, 指到 op-geth 在 L2 执行该充值交易
+  - Op-geth 会去调用 L2StandardBridge 合约的 finalizeDeposit
+
+- L2StandardBridge
+
+  - finalizeBridgeERC20 函数会去执行 mint Token 或者 token Transfer 的操作
+  - 若是 OptimismMintableERC20，执行 mint 操作
+  - 若不是 OptimismMintableERC20，更新账本，代码如下：
+
+```
 mapping(address => mapping(address => uint256)) public deposits;
 deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
+```
 
 ### 4.3 ERC721 充值
-ethdeposit
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc721deposit.png)
 
 关于 ERC721 的充值，目前逻辑是断层的，并没有完全关联起来，这里不再做过多的赘述。
 
 ## 5. L2->L1 提现
 ### 5.1 ETH 提现
 #### 5.1.1 ETH 提现交易到 L1
-ethdeposit
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethwithdraw.png)
 
-User
-用户调用 withdraw 给自己的地址提币，或者调用 withdrawTo 给指定的 to 地址提现；
-L2StandardBridge
-withdraw 和 withdrawTo 都会去 call _initiateWithdrawal; 该方法里面会去判断是 ETH 的提现还是 ERC20 的提现
-CrossDomainMessenger & L2CrossDomainMessenger
-若是 ETH 提现， 进入 _initiateBridgeETH 函数，该函数会去调用 CrossDomainMessenger 合约的sendMessage 方法，sendMessage 方法里面的逻辑成功后会对 msgNonce 自增 1，然后调用进入到了 L2CrossDomainMessenger 的_sendMessage 方法。
-L2ToL1MessagePasser
-从 L2CrossDomainMessenger 合约的 _sendMessage 调入到 L2ToL1MessagePasser 的 initiateWithdrawal 之后，会进行提现交易的 data 的构造计算出 withdrawalHash，并将该 Hash 在 map 数据结构设置为 true
+- User
+  - 用户调用 withdraw 给自己的地址提币，或者调用 withdrawTo 给指定的 to 地址提现；
+- L2StandardBridge
+  - withdraw 和 withdrawTo 都会去 call _initiateWithdrawal; 该方法里面会去判断是 ETH 的提现还是 ERC20 的提现
+- CrossDomainMessenger & L2CrossDomainMessenger
+  - 若是 ETH 提现， 进入 _initiateBridgeETH 函数，该函数会去调用 CrossDomainMessenger 合约的sendMessage 方法，sendMessage 方法里面的逻辑成功后会对 msgNonce 自增 1，然后调用进入到了 L2CrossDomainMessenger 的_sendMessage 方法。
+  
+- L2ToL1MessagePasser
+  - 从 L2CrossDomainMessenger 合约的 _sendMessage 调入到 L2ToL1MessagePasser 的 initiateWithdrawal 之后，会进行提现交易的 data 的构造计算出 withdrawalHash，并将该 Hash 在 map 数据结构设置为 true
 维护的 L2 的 msgNonce 自增 1
-Op-node & Op-geth
-二层生成提现交易
-Op-batcher & Op-proposer, 关于 Op-batcher 和 Op-proposer 的详细流程，后面会有介绍，这里就是简单的概述
-Op-batch 把提现交易的数据 rollup 到 L1
-Op-proposer 把提现交易相关的一批次数据的 stateroot 提交到 L1
-#### 5.1.2 ETH Claim 交易流程
-ethdeposit
 
-用户调用 SDK 获取提现交易的状态，若状态为 READY_TO_PROVE, 说明交易可以进行证明； 用户可以调用 SDK 的 proveMessage 去进行交易的证明，或者直接 call OptimismPortal 合约 proveWithdrawalTransaction 方法进行交易的证明，当证明交易产生之后，等到交易过了挑战期，交易状态会变成 READY_FOR_RELAY；这个时候用户可以调用 SDK 的 finalizeMessage 方法进行资金的 Claim, 也可以直接调用 OptimismPortal 合约的 finalizeWithdrawalTransaction 方法进行资金的 Claim。
-直接调用合约要进行各种组合调用，比较麻烦，建议用 sdk 进行交易的证明和 Claim
-上图是使用 SDK Claim 的完整调用流程图
+- Op-node & Op-geth
+  - 二层生成提现交易
+
+- Op-batcher & Op-proposer, 关于 Op-batcher 和 Op-proposer 的详细流程，后面会有介绍，这里就是简单的概述
+  - Op-batch 把提现交易的数据 rollup 到 L1
+  - Op-proposer 把提现交易相关的一批次数据的 stateroot 提交到 L1
+
+#### 5.1.2 ETH Claim 交易流程
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethcliam.png)
+
+- 用户调用 SDK 获取提现交易的状态，若状态为 READY_TO_PROVE, 说明交易可以进行证明； 用户可以调用 SDK 的 proveMessage 去进行交易的证明，或者直接 call OptimismPortal 合约 proveWithdrawalTransaction 方法进行交易的证明，当证明交易产生之后，等到交易过了挑战期，交易状态会变成 READY_FOR_RELAY；这个时候用户可以调用 SDK 的 finalizeMessage 方法进行资金的 Claim, 也可以直接调用 OptimismPortal 合约的 finalizeWithdrawalTransaction 方法进行资金的 Claim。
+- 直接调用合约要进行各种组合调用，比较麻烦，建议用 sdk 进行交易的证明和 Claim
+- 上图是使用 SDK Claim 的完整调用流程图
+
 ### 5.2 ERC20 提现
 #### 5.2.1 ERC20 提现交易到 L1
-ethdeposit
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc20withdraw.png)
 
-上面流程和 ETH 提现不一样的点是
-如果是 OptimismMintableERC20 合约 Token burn
-否则 deposits 账本里面的加上对应的金额，并做 token safeTransfer
+- 上面流程和 ETH 提现不一样的点是
+- 如果是 OptimismMintableERC20 合约 Token burn
+- 否则 deposits 账本里面的加上对应的金额，并做 token safeTransfer
 #### 5.2.2 ERC20 Claim 交易流程
-ethdeposit
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc20cliam.png)
 
-上述流程和 ETH Claim 不一致的就是 finalize 的时将 finalizeERC20Withdrawal 变成了并且 finalizeBridgeERC20 里面的逻辑也不一致
-finalizeBridgeERC20
-如果 OptimismMintableERC20 类型的 token, mint
-否则 deposits 账本里面的减去对应的金额，并做 token safeTransfer
+- 上述流程和 ETH Claim 不一致的就是 finalize 的时将 finalizeERC20Withdrawal 变成了并且 finalizeBridgeERC20 里面的逻辑也不一致
+    - finalizeBridgeERC20
+      - 如果 OptimismMintableERC20 类型的 token, mint
+      - 否则 deposits 账本里面的减去对应的金额，并做 token safeTransfer
 
 
 
