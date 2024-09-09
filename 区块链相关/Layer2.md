@@ -122,3 +122,7 @@ prover: （对于zk来说）提供了全op-code的电路证明的交易证明器
 - 纠删码: 一种数据的编码格式，特点是将一份数据拆分成M份，然后向DA网络中索取至少n份数据就可以恢复出完成的数据，即n/m（m>=n） 
 - 重新质押：重新质押依赖于，Liquid Staking Derivatives/Tokens (下文均简称 LSD），是在区块链世界里帮助已被质押的数字资产释放流动性、提升交易性的一种工具，其价值形式类似于「衍生品（亦称衍生资产）」，在表现形式上，LSD 也是一种依照 ERC-20 标准发布的通证，即所谓的「 I Owe You Token（常见简称 IOU Token）」，一般发行在被质押的原生资产以外的区块链或层上。
 
+### 可供参考的项目方
+
+mantle:[浏览器](https://explorer.mantle.xyz/withdrawals)
+
