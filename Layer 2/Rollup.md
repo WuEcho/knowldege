@@ -4,14 +4,14 @@
 ## 1.概述
 Op-stack 的 rollup 由两个服务来承担
 
-op-batcher 服务：主要职责是负责将交易数据提交到 Layer1 的 EOA 地址
-op-proposer 服务：主要职责是负责将交易状态提交到 Layer1 的 L2OutputOracle 合约
+- op-batcher 服务：主要职责是负责将交易数据提交到 Layer1 的 EOA 地址
+- op-proposer 服务：主要职责是负责将交易状态提交到 Layer1 的 L2OutputOracle 合约
 ## 2.Rollup 架构
-rollup_art
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/rollup_art.png)
 
 ## 3.op-batcher
 ### 3.1 执行流程图
-op-batcher
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/op-batcher.png)
 
 ### 3.2 详细执行流程
 - loadBlocksIntoState 会执行以下逻辑
@@ -47,7 +47,7 @@ op-batcher
 
 ## 4.op-proposer
 ### 4.1 执行流程图
-op-batcher
+![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/op-proposer.png)
 
 ### 4.2.详细执行流程
 FetchNextOutputInfo: 获取 L2 上的区块的 output，方便后续组装提交，output 结构如下
