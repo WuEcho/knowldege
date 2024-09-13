@@ -2548,24 +2548,6 @@ alic ---> test ---> delegatecall ---> test (msg.sender = alic)
 weth代币就是包装ETH主币，作为ERC20的合约
 **注意：**1.转换金额要匹配即：10eth <=> 10weth
 
-标准的ERC20合约包含如下几种：
-
-- 3个查询
-    - `balanceOf`: 查询指定地址的token数量
-    - `allowance`: 查询指定地址对另一个地址的剩余授权额度
-    - `totalSupply`: 查询当前合约的Token总量
-
-- 2个交易
-    - `transfer`: 从当前调用者地址发送指定数量的Token到指定地址
-        - 由于是写入方法因此会抛出一个`Transfer`事件
-    - `transferFrom`: 当向另外一个合约地址存款时，对方合约必须调用transferFrom 才可以把Token拿到自己的合约中
-
-- 2个事件
-    - `Transfer`
-    - `Approval`
-      
-- 1个授权
-    - `approval`: 授权指定地址可以操作调用者的最大Token数量    
 
 
 remix访问本地文件
