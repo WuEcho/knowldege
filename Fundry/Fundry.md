@@ -199,6 +199,9 @@ Logs:
 Test result: ok. 2 passed; 0 failed; finished in 9.94ms
 ```
 
+`forge test --match-test testxxxx`运行指定测试函数
+
+
 ## 部署合约
 
 部署合约到区块链，需要先准备有币的账号及区块链节点的 RPC URL。
