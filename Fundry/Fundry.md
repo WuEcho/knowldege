@@ -329,6 +329,33 @@ function testERC20EmitBatchTransfer() public {
 }
 ```
 
+##### error类型的测试
+在`revert`抛出错误信息时，error信息会被编码成：
+
+```
+bytes memory err = abi.encodeWithSelector(xxxxxx(自定义错误).selector,params1，params2...);
+revert(err);
+```
+
+测试代码：
+
+```
+error xxxxxx(自定义错误) (type params1,type params2);
+
+function test_needApprove() public {
+    address bob = makeAddress("bob");
+    uint256 amount = 1000;
+    vm.expectRevert(abi.encodeWithSelector(xxxxxx(自定义错误).selector,params1，params2...));
+    
+    //或者
+    vm.expectRevert(abi.encodeWithSignature(”xxxxxx(自定义错误)(Type1，Type2...)“,param1,param2);
+    
+    vm.prank(bob);
+    usdt.transfer(alicce,amount);
+}
+```
+
+
 ## 部署合约
 
 部署合约到区块链，需要先准备有币的账号及区块链节点的 RPC URL。
@@ -426,7 +453,7 @@ goerli = { key = "${ETHERSCAN_API_KEY}" }
 然后需要在 script 命令中加入`--verify`就可以执行代码开源验证
 
 
-## 安装第 3 方库
+### 安装第 3 方库
 使用`forge install`可以安装第三方的库，不同于 npm，forge 会把整个第三方的库的 Git 仓库作为子模块放在lib目录下。 使用命令如下:
 
 ```
