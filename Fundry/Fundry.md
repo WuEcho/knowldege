@@ -143,8 +143,13 @@ contract CounterTest is Test {
         counter.increment();
         assertEq(counter.counter(), 1);
     }
+    
+    
     //test 为前缀的函数的两个测试用例，测试用例中使用 assertEq 断言判断相等。
     //testSetNumber 带有一个参数 x， 它使用了基于属性的模糊测试， [forge 模糊器](https://learnblockchain.cn/docs/foundry/i18n/zh/forge/fuzz-testing.html)默认会随机指定256 个值运行测试。
+    
+    //也可以通过配置参数的方式设定模糊测试的轮次
+    //forge-config: default.fuzz.runs = 500
     function testSetNumber(uint256 x) public {
         counter.setNumber(x);
         assertEq(counter.counter(), x);
@@ -160,7 +165,6 @@ contract CounterTest is Test {
     }
 }
 ```
-
 
 
 ### 运行测试
@@ -200,7 +204,130 @@ Test result: ok. 2 passed; 0 failed; finished in 9.94ms
 ```
 
 `forge test --match-test testxxxx`运行指定测试函数
+`forge test --mt testxxxx`运行指定测试函数
 
+### 测试技巧
+
+#### 创建测试钱包地址
+如需模拟多个用户钱包身份来参加测试，可以使用`makeAddr()`来创建。
+
+```
+address alice = address(0x488xxxxxxxxxxx);
+address bob = makeAddress("bob");
+address eva = makeAddress("任意字符")
+```
+
+#### 改变msg.sender
+当希望`alice`的钱包和合约交互时，可以在调用合约方法前，通过`vm.parnk(alice)`的方式设置：
+
+```
+function test_Increment() public {
+    address alice = address(0x4123xxxxxxx);
+    vm.prank(alice);
+    counter.increment();
+    assertEq(counter.number(),1);
+}
+```
+
+如果后面所有的执行都是用alice身份执行，可以使用`vm.startPrank(alice)`设置：
+
+```
+function test_Increment() public {
+    address alice = address(0x4123xxxxxxx);
+    vm.startPrank(alice);
+    counter.increment();
+    counter.increment();
+    counter.increment();
+    vm.stopPrank();
+    assertEq(counter.number(),1);
+}
+```
+在使用`vm.startPrank(alice)`时，需要在使用`vm.stopPrank()`来取消`alice`执行身份。
+
+#### 给测试钱包存入eth
+ 测试钱包没有钱，可以在测试中使用`deal(alice,1000 ether)`来存入`1000 ether`给`alice`：
+ 
+```
+function test_some() public {
+    address alice = makeAddress("alice");
+    deal(alice,1000 ether);
+}
+``` 
+**注意：**`deal`并不是直接给`alice`1000个`ether`，而是将`alice`的余额重置为1000个`ether`。
+
+#### 断言合约执行错误
+在测试合约中，需要检测执行合约是否需要符合某种错误，使用`expect-revert`即可。
+
+```
+//0.8版本以前都可用 
+vm.expectRevert("Owner cant't buy");
+mkt.buyNFT(address(nft),tokenId,address(token));
+
+//0.8以后多出了error类型需要使用
+//仅关注错误类型
+//vm.expectRevert(CustomError.slelctor);
+//错误类型以及参数信息
+//vm.expectRevert(abi.encodeWithSelector(CustomError.selector,param1,param2));
+```
+
+#### 断言合约返回值是否符合预期
+##### 断言值是否相等
+
+```
+assertEq(nft.ownerOf(tokenId),alice,"expect nft owner is alice");
+```
+
+##### 断言合约事件
+判断测试合约的执行是否出现符合预期的合约事件使用`expect-emit`
+api有：
+
+```
+function expectEmit() external;
+```
+
+```
+function expectEmit(
+  bool checkTopic1,
+  bool checkTopic2,
+  bool checkTopic3,
+  bool checkData
+) external; 
+```
+
+```
+function expectEmit(
+  bool checkTopic1,
+  bool checkTopic2,
+  bool checkTopic3,
+  bool checkData,
+  address emitter
+) external;
+```
+断言下一次调用期间发出特定日志。
+使用步骤：
+ 
+ - 1. 调用作弊码`expectEmit`,指定是否应该检查第一个，第二个或第三个主题，以及日志Data数据。注意，`expectEmit()`表示全部检查，`Topic0`始终被检查。
+ - 2. `emit`一个我们期望在下次`call`期间看到的时间
+ - 3. 调用合约方法。
+
+示例：
+
+```
+function testERC20EmitBatchTransfer() public {
+    for (uint256 i=0;i<users.length;i++) {
+        //topic(always checked),topic1(true),topic2(true),Not topic3(false),and data
+        vm.expectEmit(true,true,false,true);
+        emit Transfer(address(this),users[i],10);
+    }
+
+
+    //期望出现`BatchTransfer(uint256 numberOfTransders)`事件
+    vm.expectEmit(flase,false,false,true);
+    emit BatchTransfer(users.length);
+    
+    mtToken.batchTransfer(users,10);
+}
+```
 
 ## 部署合约
 
@@ -210,7 +337,22 @@ Forge 提供 create 命令部署合约， 如：
 ```
 forge create  src/Counter.sol:Counter  --rpc-url <RPC_URL>  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
-create 命令需要输入的参数较多，使用部署脚本是更推荐的做法是使用`[solidity-scripting](https://learnblockchain.cn/docs/foundry/i18n/zh/tutorials/solidity-scripting.html)`部署。为此我们需要稍微配置 Foundry。
+
+部署合约需要做的事：
+
+- 1. 使用`forge create`来部署合约
+- 2. 指定一个钱包
+    -  `- pricateKey` 
+    -  `- keystore` 指定加密私钥文件的路径，执行时输入密码
+    -  `- account`  从默认文件夹中获取keystore,执行时输入密码
+- 3. 选择链
+    - `--chain`
+- 4. 选择rpc节点
+    - `--https://chainlist.org`   
+    - `自有节点`
+    - `本地节点`
+
+create 命令需要输入的参数较多，使用部署脚本是更推荐的做法是使用`[solidity-scripting](https://learnblockchain.cn/docs/foundry/i18n/zh/tutorials/solidity-scripting.html)`部署。为此我们需要稍微配置 `Foundry`。
 通常我们会创建一个 `.env` 保存私密信息（如：私钥），`.env `文件应遵循以下格式:
 
 ```
@@ -317,11 +459,77 @@ lib
 └── openzeppelin-contracts
 ```
 
+### 创建钱包以及导入钱包
+
+使用`cast`命令进行相关操作，更多操作参考[cast使用说明](https://book.getfoundry.sh/reference/cast/cast?highlight=cast#cast)
+
+#### 创建钱包
+//创建的钱包默认路径在`~/.foundry/`
+```
+//打开终端
+>:cast wallet new
+
+Successfully created new keypair.
+Address:     0x2968d08A95e1A069bb58509F88DC41DDAe416eF3
+Private key: 0x2715dfd2835e203d7da5a2b9b6861bd7f4c61ebe1f2b35dd25c9c92f628b102c
+```
+
+#### 导入钱包
+
+```
+cast wallet import -i admin //admin是自定义的ACCOUNT_NAME
+
+Enter private key:
+Enter password: 
+`admin` keystore was saved successfully. Address: 0x2968d08a95e1a069bb58509f88dc41ddae416ef3
+```
+
+#### 防止密码输入错误可再次验证
+
+```
+cast wallet address --account admin
+Enter keystore password:
+0x2968d08A95e1A069bb58509F88DC41DDAe416eF3
+```
+
+### 相关环境配置
+在对合约进行部署的时候，可以使用`forge creat -h | grep env`对一些部署所需要的环境变量的查询：
+
+```
+    Timeout to use for broadcasting transactions [env: ETH_TIMEOUT=]
+      --libraries <LIBRARIES>  Set pre-linked libraries [env: DAPP_LIBRARIES=]
+      --remappings-env <ENV>
+          The project's remappings from the environment
+          Gas limit for the transaction [env: ETH_GAS_LIMIT=]
+          [env: ETH_GAS_PRICE=]
+          Max priority fee per gas for EIP1559 transactions [env:
+          Gas price for EIP-4844 blob transaction [env: ETH_BLOB_GAS_PRICE=]
+          The RPC endpoint [env: ETH_RPC_URL=]
+          JWT Secret for the RPC endpoint [env: ETH_RPC_JWT_SECRET=]
+          The Etherscan (or equivalent) API key [env: ETHERSCAN_API_KEY=]
+          The chain name or EIP-155 chain ID [env: CHAIN=]
+          The sender account [env: ETH_FROM=]
+          Use the keystore in the given folder or file [env: ETH_KEYSTORE=]
+          (~/.foundry/keystores) by its filename [env: ETH_KEYSTORE_ACCOUNT=]
+          The keystore password file path [env: ETH_PASSWORD=]
+          The verifier URL, if using a custom provider [env: VERIFIER_URL=]
+```
+
+对于以上诸多配置可以在项目的根目录下创建文件`.env`并将一些配置配置进去入下：
+
+```
+CHAIN=11155111
+ETH_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com //可从chainlink上查询
+ETH_FROM=0x7bcd32f7c439fab6125868e34363221067902e2f
+ETH_KEYSTORE_ACCOUNT=testWallet
+```
+
+之后输入`source .env `使得配置文件生效。
 
 
 ##  Anvil 使用
 
-`anvil`命令创建一个本地开发网节点，用于部署和测试智能合约。它也可以用来分叉其他与 EVM 兼容的网络。运行 anvil 效果如下：
+`anvil`命令创建一个本地开发网节点，用于部署和测试智能合约,具体详情可参考[anvil文档](https://book.getfoundry.sh/anvil/?highlight=anvil#how-to-use-anvil)。它也可以用来分叉其他与`EVM`兼容的网络。运行`anvil`效果如下：
 
 ```
 > anvil
@@ -338,7 +546,8 @@ lib
 Available Accounts
 ==================
 
-(0) "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" (10000 ETH)
+(0) "
+" (10000 ETH)
 (1) "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" (10000 ETH)
 ....
 
@@ -390,6 +599,46 @@ anvil --mnemonic=<MNEMONIC>
 anvil --fork-url=$RPC --fork-block-number=<BLOCK>
 ```
 anvil完整的功能选项可参考[文档](https://learnblockchain.cn/docs/foundry/i18n/zh/reference/anvil/index.html#%E9%80%89%E9%A1%B9)
+
+**注意：**在使用`anvil`时，原配置账号在本地节点可能没有钱，那就需要`cast send -i --rpc-url 127.0.0.1:8545  --value 2ether  0x7bcd3xxxxxxxxxxxx(.env环境中配置的地址)`而且在与本地节点交互的时候注意之前的`.env`的配置
+
+## 代码验证
+### 通过ethersacn进行开源验证
+
+- 浏览器验证
+   需要在vscode中最上点击`flatten`将文件扁平化，也可使用命令`forge flatten ./src/xxx.sol`生成，将文件内容复制到验证的文本框里
+
+- foundry验证
+    使用命令`forge v contract_address  contract_name`,需要在`.env`中配置`ETHERSCAN_API_KEY`,api key可通过etherscan获取
+
+- 脚本验证
+    在项目的`script`目录下创建`xxx.s.sol`文件，基本内容如下：
+  
+```
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.25;
+
+import {Script, console} from "forge-std/Script.sol";
+import {Counter} from "../src/Counter.sol";
+
+contract CounterScript is Script {
+    Counter public counter;
+
+    function setUp() public {}
+
+    function run() public {
+        vm.startBroadcast();
+
+        Counter cunt = new Counter();
+        console.log("Counter address:",address(cunt));
+        //可多个合约进行创建
+        //互相操作并进行结果校验        vm.stopBroadcast();
+    }
+}
+
+```  
+
+使用命令`forge script --rpc-url xxxx (本地节点) --private-key 0xxxxxxxx ./script/xxx.s.sol --broadcast(不带有broadcast命令是仅模拟不广播)`
 
 ### Cast 与合约交互使用 
 
