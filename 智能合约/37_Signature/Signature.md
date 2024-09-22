@@ -230,5 +230,5 @@ contract SignatureNFT is ERC721 {
 | 0x45  | 191 | personal_sign messages |
 
 - `EIP712`: 定义结构化信息签名标准
-
+712之前并不知道签署的信息是什么内容，只是一串十六进制的字符串，712之后就可以对信息实现了解析和显示。
 
