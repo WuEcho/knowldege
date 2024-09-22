@@ -217,3 +217,18 @@ contract SignatureNFT is ERC721 {
 - 但由于用户要请求中心化接口去获取签名，不可避免的牺牲了一部分去中心化；
 - 额外还有一个好处是白名单可以动态变化，而不是提前写死在合约里面了，因为项目方的中心化后端接口可以接受任何新地址的请求并给予白名单签名。
 
+## 签名的几个EIP
+
+- `EIP191`: 区分交易签名和其他信息签名[具体详情](https://eips.ethereum.org/EIPS/eip-191)
+   
+  `0x19 <1 byte version> <version specific data> <data to sign>`. 
+  
+| Version byte  | EIP | Description  |
+| --- | --- | :-: |
+| 0x00 | 191 | Data with intended validator |
+| 0x01 | 712 | Structured data |
+| 0x45  | 191 | personal_sign messages |
+
+- `EIP712`: 定义结构化信息签名标准
+
+
