@@ -28,6 +28,8 @@ contract Foo {
 - `管理员`变为工具人，仅能调用代理合约的可升级函数对合约升级，不能通过回调函数调用逻辑合约。
 - `其它用户`不能调用可升级函数，但是可以调用逻辑合约的函数。
 
+![](https://github.com/WuEcho/knowldege/blob/main/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6/48_TransparentProxy/image/transparent.png)
+
 ### 代理合约
 这里的代理合约和[第47讲](https://github.com/WuEcho/knowldege/tree/main/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6/47_Upgrade)的非常相近，只是`fallback()`函数限制了管理员地址的调用。
 
