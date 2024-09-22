@@ -165,6 +165,8 @@ function write(bytes32 sloat,uint256 value) extarnal {
 /**
 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc是通过bytes32(uint(keccak256("eip1967.proxy.implementation"))-1)计算得出的
 
+也可以直接写成
+bytes32 private constant IMPLEMENTATION_SLOT = bytes32(uint(keccak256("eip1967.proxy.implementation"))-1);
 **/
 bytes32 private constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
