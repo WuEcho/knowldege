@@ -93,3 +93,91 @@ contract Logic2 {
 ```
 
 
+## 升级会产生的问题
+
+### 1. 代理和逻辑合约的存储布局不⼀致发⽣⽆法预期的错误
+示例如下：
+Counter.sol
+
+```
+pragma solidity ^0.8.0;
+contract Counter {
+ uint private counter;
+ 
+ function add(uint256 i) public {
+    counter += 1;
+ }
+ function get() public view returns(uint) {
+    return counter;
+ }
+}
+```
+CounterProxy.sol
+
+```
+pragma solidity ^0.8.0;
+contract CounterProxy {
+ address impl; /**对比Counter.sol 同样位置不再是counter
+ **/
+ uint private counter;
+ 
+ function add(uint256 i) public {
+    bytes memory callData = abi.encodeWithSignature("add(uint256)", n);
+    (bool ok,) = address(impl).delegatecall(callData);
+    if(!ok) revert("Delegate call failed");
+ }
+ 
+ /**
+ 这里 原本是想读取`counter`的值，但是因为存储槽位置发生了变化
+ 从原来想读取的`counter`，变成了读取`impl`
+ **/
+ function get() public view returns(uint) {
+    bytes memory callData = abi.encodeWithSignature("get()");
+    (bool ok, bytes memory retVal) = address(impl).delegatecall(callData); 
+     if(!ok) revert("Delegate call failed");
+    return abi.decode(retVal, (uint256));
+ }
+}
+```
+
+解决办法：1.通过读取固定槽位的值来进行查询
+
+```
+function read(bytes32 slot) external view returns(bytes32 data) {
+    assembly {
+        data := sload(slot) //load from storage
+    }
+}
+
+function write(bytes32 sloat,uint256 value) extarnal {
+    assembly {
+        sstore(slot,value) 
+    }
+}
+```
+### 2.如何新的合约增加了新的变量
+
+请不要再原有代码的基础上，从头插入，而是向后面添加或者对需要升级的合约地址位置实现**地址槽位**`bytes32(uint(keccak256("eip1967.proxy.implementation"))-1)`  - EIP 1926
+
+示例：
+
+```
+/**
+0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc是通过bytes32(uint(keccak256("eip1967.proxy.implementation"))-1)计算得出的
+
+**/
+bytes32 private constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+
+function setImplementation(address _logic) internal {
+    assembly {
+        sstore(IMPLEMENTATION_SLOT,_logic)
+    }
+}
+``` 
+
+
+### 3.如果想在增加新的方法怎么办
+
+透明代理或者uupd
+
+
