@@ -178,6 +178,31 @@ function setImplementation(address _logic) internal {
 
 ### 3.如果想在增加新的方法怎么办
 
-透明代理或者uupd
+透明代理或者uupd或者统一委托代理
+
+#### 统一委托代理
+
+```
+ // 添加 fallback 函数，用于将未匹配的调用转发给逻辑合约
+    fallback() external payable {
+        _delegate(implementation);
+    }
+
+    function _delegate(address _impl) internal {
+        assembly {
+            //获得⾃由空闲指针
+            let ptr := mload(0x40)
+            calldatacopy(ptr, 0, calldatasize())
+            let result := delegatecall(gas(), _impl, ptr, calldatasize(), 0, 0)
+            let size := returndatasize()
+            //将返回值从返回缓冲去copy到指针所指位置
+            returndatacopy(ptr, 0, size)
+
+            switch result
+            case 0 { revert(ptr, size) }
+            default { return(ptr, size) }
+        }
+    }
+```
 
 
