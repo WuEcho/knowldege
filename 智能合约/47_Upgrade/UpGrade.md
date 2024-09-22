@@ -208,3 +208,23 @@ function setImplementation(address _logic) internal {
 ```
 
 
+## 开发中可以使用到的升级
+
+### Hardhat
+
+- `hardhat-upgrades`
+  - npm install --save-dev @openzeppelin/hardhat-upgrades
+- `contracts-upgradeable`
+  - npm install —save-dev @openzeppelin/contracts-upgradeable 
+
+[文档参考](https://docs.openzeppelin.com/contracts/5.x/upgradeable)
+
+### Foundry
+
+- `foundry-upgrades`
+    - forge install OpenZeppelin/openzeppelin-foundry-upgrades
+- `openzeppelin-contracts-upgradeable`
+    - forge install OpenZeppelin/openzeppelin-contracts-upgradeable   
+[文档参考](https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades)
+
+
