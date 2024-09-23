@@ -165,7 +165,8 @@ contract ERC20Permit is ERC20, IERC20Permit, EIP712 {
         current = _nonces[owner];
         _nonces[owner] += 1;
     }
-}```
+}
+```
 
 
 ## Permit2
