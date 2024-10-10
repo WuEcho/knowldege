@@ -1,4 +1,4 @@
-# Fundry 
+# Foundry 
 Foundry 是一个Solidity框架，用于构建、测试、模糊、调试和部署Solidity智能合约， Foundry 的优势是以Solidity 作为第一公民，完全使用 Solidity 进行开发与测试。
 Foundry 的测试功能非常强大，通过[作弊码](https://learnblockchain.cn/docs/foundry/i18n/zh/forge/cheatcodes.html#%E4%BD%9C%E5%BC%8A%E7%A0%81cheatcodes)来操纵区块链的状态，可以方便我们模拟各种情况，还支持基于属性的模糊测试。
 
