@@ -1,5 +1,7 @@
 # 深入理解 Op-stack 跨链调用过程及 ETH 和 ERC20 的充值提现
 
+![](./image/deposit_withdraw.png)
+
 ## 1. 信使合约
 信使合约的主要功能是跨链通信，核心方法为`sendMessage` 与 `relayMessage`；
 
@@ -26,7 +28,7 @@ OptimismPortal 合约是 op-stack 的充值提现纽带合约
 
 ## 4. L1->L2 充值
 ### 4.1 ETH 充值
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethdeposit.png)
+![](./image/ethdeposit.png)
 
 - User
    - 用户调用 depositETH 给自己的地址充值，或者调用 depositETHTo 给指定的 to 地址充值；
@@ -66,7 +68,7 @@ receive() external payable override onlyEOA {
 因此，直接把 ETH 转入到 OptimismPortal 和 L1StandardBridge 里面，也属于 ETH 的充值交易
 
 ### 4.2 ERC20 充值
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc20deposit.png)
+![](./image/erc20deposit.png)
 
 - User
   - 用户调用 `depositERC20` 给自己的地址充值，或者调用 `depositERC20To` 给指定的 to 地址充值；
@@ -103,14 +105,14 @@ deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amo
 ```
 
 ### 4.3 ERC721 充值
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc721deposit.png)
+![](./image/erc721deposit.png)
 
 关于 ERC721 的充值，目前逻辑是断层的，并没有完全关联起来，这里不再做过多的赘述。
 
 ## 5. L2->L1 提现
 ### 5.1 ETH 提现
 #### 5.1.1 ETH 提现交易到 L1
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethwithdraw.png)
+![](./image/ethwithdraw.png)
 
 - User
   - 用户调用 withdraw 给自己的地址提币，或者调用 withdrawTo 给指定的 to 地址提现；
@@ -131,7 +133,7 @@ deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amo
   - Op-proposer 把提现交易相关的一批次数据的 stateroot 提交到 L1
 
 #### 5.1.2 ETH Claim 交易流程
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/ethcliam.png)
+![](./image/ethcliam.png)
 
 - 用户调用 SDK 获取提现交易的状态，若状态为 `READY_TO_PROVE`, 说明交易可以进行证明； 用户可以调用 SDK 的 `proveMessage` 去进行交易的证明，或者直接 call `OptimismPortal` 合约 `proveWithdrawalTransaction` 方法进行交易的证明，当证明交易产生之后，等到交易过了挑战期，交易状态会变成 `READY_FOR_RELAY`；这个时候用户可以调用 SDK 的 `finalizeMessage` 方法进行资金的 Claim, 也可以直接调用 OptimismPortal 合约的 `finalizeWithdrawalTransaction` 方法进行资金的 Claim。
 - 直接调用合约要进行各种组合调用，比较麻烦，建议用 sdk 进行交易的证明和 Claim
@@ -139,20 +141,18 @@ deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amo
 
 ### 5.2 ERC20 提现
 #### 5.2.1 ERC20 提现交易到 L1
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc20withdraw.png)
+![](./image/erc20withdraw.png)
 
 - 上面流程和 ETH 提现不一样的点是
 - 如果是 `OptimismMintableERC20` 合约 Token burn
 - 否则 `deposits` 账本里面的加上对应的金额，并做 `token safeTransfer`
 #### 5.2.2 ERC20 Claim 交易流程
-![](https://github.com/WuEcho/knowldege/blob/main/Layer%202/image/erc20cliam.png)
+![](./image/erc20cliam.png)
 
 - 上述流程和 ETH Claim 不一致的就是 finalize 的时将 `finalizeERC20Withdrawal` 变成了并且 `finalizeBridgeERC20` 里面的逻辑也不一致
     - finalizeBridgeERC20
       - 如果 OptimismMintableERC20 类型的 token, mint
       - 否则 deposits 账本里面的减去对应的金额，并做 token safeTransfer
-
-
 
 
 
