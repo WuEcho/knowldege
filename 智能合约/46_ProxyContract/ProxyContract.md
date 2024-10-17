@@ -12,7 +12,7 @@
 
 有没有办法在合约部署后进行修改或升级呢？答案是有的，那就是**代理模式**。
 
-![](https://github.com/WuEcho/knowldege/blob/main/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6/46_ProxyContract/image/proxy.png)
+![](./image/proxy.png)
 
 代理模式将合约数据和逻辑分开，分别保存在不同合约中。我们拿上图中简单的代理合约为例，数据（状态变量）存储在代理合约中，而逻辑（函数）保存在另一个逻辑合约中。代理合约（Proxy）通过`delegatecall`，将函数调用全权委托给逻辑合约（`Implementation`）执行，再把最终的结果返回给调用者（`Caller`）。
 

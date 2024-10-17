@@ -4,7 +4,7 @@
 
 ## 可升级合约
 你理解了代理合约，就很容易理解可升级合约。它就是一个可以更改逻辑合约的代理合约。
-![](https://github.com/WuEcho/knowldege/blob/main/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6/47_Upgrade/image/updrade.png)
+![](./image/updrade.png)
 
 ## 简单实现
 
