@@ -160,3 +160,21 @@ edition = "2021"        //使用的Rust版本
 
 
 
+### 其他
+- 1.cargo clippy：A collection of lints to catch common mistakes and improve your Rust code.
+（[https://github.com/rust-lang/rust-clippy）](https://github.com/rust-lang/rust-clippy%EF%BC%89)
+
+- 2.rust-analyzer：Bringing a great IDE experience to the Rust programming language.
+（[https://rust-analyzer.github.io/）](https://rust-analyzer.github.io/%EF%BC%89)
+
+- 3.Rust程序设计语言中文版 [https://kaisery.github.io/trpl-zh-cn/](https://kaisery.github.io/trpl-zh-cn/
+)
+
+- 4.Rust语言圣经  [https://course.rs/into-rust.html](https://course.rs/into-rust.html)
+
+- 5.std文档 [https://doc.rust-lang.org/std/](https://doc.rust-lang.org/std/)
+
+- 6.crates [https://crates.io/](https://crates.io/)
+
+- 7.Rust十万个为什么 [https://fengliang.io/RustWHY/](https://fengliang.io/RustWHY/)
+
