@@ -176,5 +176,3 @@ edition = "2021"        //使用的Rust版本
 
 - 6.crates [https://crates.io/](https://crates.io/)
 
-- 7.Rust十万个为什么 [https://fengliang.io/RustWHY/](https://fengliang.io/RustWHY/)
-
