@@ -42,7 +42,7 @@
 #### 示例代码：
 
 代码库：[https://github.com/xilibi2003/v2-periphery](https://github.com/xilibi2003/v2-periphery)
-⽂件：contracts/FlashSwap.sol
+⽂件：`contracts/FlashSwap.sol`
 
 
 ### Uniswap 价格预言机
