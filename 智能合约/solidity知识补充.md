@@ -534,15 +534,15 @@ contract SafeDelegateCall {
 
 
 #### 在合约中，如何防止“签名伪造”（Signature Forgery）攻击？请提供一个使用ecrecover的安全实现示例，并说明为何需要验证s值的范围
-
+- 检查 deadline 过期
+- 确保签名为合法持有人签发
+- 签名验证失败将自动 revert
+- 签名授权生效后立刻转账，防止其他人前抢（front-run）
 
 
 #### 在合约中，如何安全地处理ERC20的permit功能（EIP-2612
 
-时间戳 
 
-
-#### 什么是“零知识证明”（ZK Proof）在合约中的应用场景？请提供一个使用zk-SNARK验证隐私交易
 
 #### 在合约中，如何防范“预言机价格延迟”（Oracle Price Latency）攻击？请以Chainlink为例，说明如何检查价格的“新鲜度”（如answeredInRound）。
 
