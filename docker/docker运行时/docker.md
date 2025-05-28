@@ -103,6 +103,7 @@
 ### 5.1 Docker安装
 
 #### 检查卸载老版本docker
+
 ~~~powershell
 $ apt-get remove docker docker-engine docker.io containerd runc
 ~~~
